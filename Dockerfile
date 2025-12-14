@@ -1,14 +1,14 @@
-# Use a Java 21 image
-FROM openjdk:21-jdk-alpine
+# We use Java 21, the current LTS version
+FROM eclipse-temurin:21-jdk-alpine
 
 # Set the working directory
 WORKDIR /app
 
-# Copy the JAR file (produced by Maven build)
+# Copy the JAR file produced by Maven
 COPY target/*.jar app.jar
 
-# Define the entry point to run the application
+# Define the entry point
 ENTRYPOINT ["java", "-jar", "app.jar"]
 
-# Expose the internal port
+# Expose the port
 EXPOSE 8080
