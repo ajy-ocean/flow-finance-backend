@@ -38,8 +38,7 @@ public class SecurityConfig {
                 (request, response, authException) -> response.sendError(
                         401, "Unauthorized: Authentication required"
                 )
-        ))
-                .formLogin(Customizer.withDefaults());
+        ));
         return http.build();
     }
 
