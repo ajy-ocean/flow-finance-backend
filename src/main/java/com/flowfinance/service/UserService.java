@@ -1,26 +1,32 @@
 package com.flowfinance.service;
 
-import com.flowfinance.entity.User;
-import com.flowfinance.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import com.flowfinance.entity.User; 
+import com.flowfinance.repository.UserRepository;
 
 @Service
 public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public User register(User user) {
-//        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-//            throw new RuntimeException("Username exists");
-//        }
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+            throw new RuntimeException("Username exists");
+        }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
-
-    public User findByUsernameAndPassword(String username, String password) {
+    
+    public User findByUsername(String username) {
         return userRepository.findByUsername(username)
-                .filter(u -> u.getPassword().equals(password))
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
     }
 }
