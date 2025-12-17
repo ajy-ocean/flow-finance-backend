@@ -1,5 +1,7 @@
 package com.flowfinance.controller;
 
+import java.util.Collections;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -36,17 +38,17 @@ public class UserController {
     public ResponseEntity<?> register(@RequestBody User user) {
         try {
             User savedUser = userService.register(user);
-            Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    savedUser.getUsername(),
-                    user.getPassword() 
-                )
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                savedUser.getUsername(),
+                null, 
+                Collections.emptyList() 
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = tokenProvider.generateToken(authentication);
+
             return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("Registration failed: " + e.getMessage());
         }
     }
 
@@ -63,23 +65,31 @@ public class UserController {
             String jwt = tokenProvider.generateToken(authentication);
             return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Invalid credentials");
+            return ResponseEntity.status(401).body("Invalid credentials");
         }
     }
 
     @PostMapping("/logout")
     public ResponseEntity<String> logout() {
+        SecurityContextHolder.clearContext(); 
         return ResponseEntity.ok("Logged out successfully");
     }
 
     @GetMapping("/current")
     public ResponseEntity<User> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getPrincipal().equals("anonymousUser")) {
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
             return ResponseEntity.status(401).build();
         }
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userService.findByUsername(userDetails.getUsername());
+        
+        String username;
+        if (authentication.getPrincipal() instanceof UserDetails) {
+            username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        } else {
+            username = authentication.getPrincipal().toString();
+        }
+
+        User user = userService.findByUsername(username);
         return ResponseEntity.ok(user);
     }
 }
