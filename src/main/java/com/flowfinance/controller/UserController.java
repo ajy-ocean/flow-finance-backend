@@ -1,6 +1,6 @@
 package com.flowfinance.controller;
 
-import java.util.Collections;
+import java.util.ArrayList;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -38,14 +38,18 @@ public class UserController {
     public ResponseEntity<?> register(@RequestBody User user) {
         try {
             User savedUser = userService.register(user);
-            Authentication authentication = new UsernamePasswordAuthenticationToken(
+            UserDetails userDetails = new org.springframework.security.core.userdetails.User(
                 savedUser.getUsername(),
+                savedUser.getPassword(),
+                new ArrayList<>() 
+            );
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, 
                 null, 
-                Collections.emptyList() 
+                userDetails.getAuthorities()
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = tokenProvider.generateToken(authentication);
-
             return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Registration failed: " + e.getMessage());
@@ -78,7 +82,9 @@ public class UserController {
     @GetMapping("/current")
     public ResponseEntity<User> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
+        
+        if (authentication == null || !authentication.isAuthenticated() || 
+            authentication.getPrincipal().equals("anonymousUser")) {
             return ResponseEntity.status(401).build();
         }
         
